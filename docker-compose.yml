@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  mysql-db:
+    image: mysql:latest
+    env_file:
+      - ./src/main/java/com/billing/webapp/.env
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+volumes:
+  db-data:

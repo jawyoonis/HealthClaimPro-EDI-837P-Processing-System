@@ -6,3 +6,4 @@ firebase-login-key.json
 .idea
 .gradle/8.5/
 .sh
+.DS_Store

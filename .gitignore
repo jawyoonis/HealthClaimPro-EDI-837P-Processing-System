@@ -2,4 +2,7 @@
 .env
 id_rsa*
 known_hosts
+firebase-login-key.json
+.idea
+.gradle
 .sh

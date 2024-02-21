@@ -1,7 +1,7 @@
 *.txt
 .env
 id_rsa*
-known_hosts
+knownhosts
 src/main/resources/firebase-login-key.json
 .idea
 .gradle/8.5/

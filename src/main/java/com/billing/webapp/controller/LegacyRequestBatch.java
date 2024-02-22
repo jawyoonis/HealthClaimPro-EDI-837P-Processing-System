@@ -1,7 +1,5 @@
 package com.billing.webapp.controller;
 
-import com.billing.webapp.service.LegacyRequest;
-
 import java.util.List;
 
 public class LegacyRequestBatch {

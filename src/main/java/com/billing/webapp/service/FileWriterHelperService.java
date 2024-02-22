@@ -24,8 +24,9 @@ import java.util.Random;
     * This class is used to create a file or files for each claim generated for each client
  */
 @Component
-@Scope(value = "request", proxyMode = ScopedProxyMode.TARGET_CLASS)
+//@Scope(value = "request", proxyMode = ScopedProxyMode.TARGET_CLASS)
 public class FileWriterHelperService {
+
 
     private static final Logger logger = LoggerFactory.getLogger(FileWriterHelperService.class);
     LocalDateTime currentDateTime = LocalDateTime.now(); // current date and time

@@ -7,3 +7,4 @@ src/main/resources/firebase-login-key.json
 .gradle/8.5/
 .sh
 .DS_Store
+build/*

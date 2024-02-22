@@ -1,15 +1,17 @@
 package com.billing.webapp.service;
 
+import com.billing.webapp.controller.LegacyRequest;
 import com.billing.webapp.dto.BillingHistoryDTO;
 import com.billing.webapp.dto.DateRangeDTO;
 import com.billing.webapp.entity.DateRange;
 import com.billing.webapp.entity.LegacyData;
 import com.billing.webapp.entity.TotalClaimChargePerUser;
+import com.billing.webapp.repository.DateRangeRepository;
 import com.billing.webapp.repository.LegacyDataRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.CrossOrigin;
-
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.*;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 @CrossOrigin
+//@Scope(value = "request", proxyMode = ScopedProxyMode.TARGET_CLASS)
 public class LegacyDataService {
     /*
         * This class is responsible for handling the business logic of the application.
@@ -33,8 +36,8 @@ public class LegacyDataService {
      */
 
     private final LegacyDataRepository legacyDataRepository;
-
     private final LegacyService legacyService;
+    private final DateRangeRepository dateRangeRepository;
 
     /*
     *Constructor injection is used here to inject the dependencies into the class using the constructor instead of the setter methods
@@ -42,9 +45,10 @@ public class LegacyDataService {
     * The classes injected here are the LegacyDataRepository and LegacyService classes because they are dependencies of this class and are needed to perform the business logic of the application
      */
     @Autowired
-    public LegacyDataService(LegacyDataRepository legacyDataRepository, LegacyService legacyService) {
+    public LegacyDataService(@Lazy LegacyService legacyService, LegacyDataRepository legacyDataRepository, DateRangeRepository dateRangeRepository) {
         this.legacyDataRepository = legacyDataRepository;
         this.legacyService = legacyService;
+        this.dateRangeRepository = dateRangeRepository;
     }
 
     /*
@@ -62,91 +66,179 @@ public class LegacyDataService {
     * The method returns the LegacyData entity.
     * The @CrossOrigin annotation is used to allow the frontend to access the backend.
      */
-    @CrossOrigin
+   @CrossOrigin
     public LegacyData saveOrUpdateLegacyData(LegacyRequest request, Double totalClaimAmount) {
+        LegacyData data = legacyDataRepository.findByIdNumber(request.getIdNumber())
+                .orElseGet(() -> new LegacyData());
 
-        // First, check if the user already exists
-        Optional<LegacyData> existingUser = legacyDataRepository.findByIdNumber(request.getIdNumber());
+        mapRequestToLegacyData(request, data);
 
-        final LegacyData data; // This is the LegacyData entity that will be saved
-
-        if (existingUser.isPresent()) {
-            // User exists, use the existing record
-            data = existingUser.get();
-        } else {
-            // Create a new LegacyData entity from the request data
-            // This is a new user, create a new record
-            data = new LegacyData();
-            // Map fields from request to entity
-            data.setFirstName(request.getFirstName());
-            data.setLastName(request.getLastName());
-            data.setIdNumber(request.getIdNumber());
-            data.setAddress(request.getAddress());
-            data.setBirthday(request.getBirthday());
-            data.setZipcode(request.getZipcode());
-            data.setRate(request.getRate());
-            data.setDatesToSkip(request.getDatesToSkip());
+        // Handle DateRange creation or update
+        DateRange dateRange = createDateRangeForLegacyData(data, request);
+        // Check if dateRanges is null and initialize it if necessary
+        if (data.getDateRanges() == null) {
+            data.setDateRanges(new ArrayList<>());
         }
-        // Ensure totalClaimCharges list is initialized
-        // This is needed to avoid null pointer exceptions
-        if (data.getTotalClaimCharges() == null) {
-            data.setTotalClaimCharges(new ArrayList<>());
-        }
+        data.getDateRanges().add(dateRange);
 
-        // Check if the DateRange with the same start and end dates already exists
-        DateRange dateRange = findExistingDateRange(data, legacyService.getActualStart(), legacyService.getActualEnd());
-        if (dateRange == null) {
-            // DateRange does not exist, create a new DateRange entity from the request data
-            dateRange = new DateRange();
-            dateRange.setStartDate(legacyService.getActualStart().toString()); // Set actual start date
-            dateRange.setEndDate(legacyService.getActualEnd().toString()); // Set actual end date
-            // Set hours per day for each day of the week from the request data (0.0 if not provided)
-            Map<DayOfWeek, Double> serviceHours = request.convertToHoursPerDayMap();
-            dateRange.setMondayHours(serviceHours.getOrDefault(DayOfWeek.MONDAY, 0.0));
-            dateRange.setTuesdayHours(serviceHours.getOrDefault(DayOfWeek.TUESDAY, 0.0));
-            dateRange.setWednesdayHours(serviceHours.getOrDefault(DayOfWeek.WEDNESDAY, 0.0));
-            dateRange.setThursdayHours(serviceHours.getOrDefault(DayOfWeek.THURSDAY, 0.0));
-            dateRange.setFridayHours(serviceHours.getOrDefault(DayOfWeek.FRIDAY, 0.0));
-            dateRange.setSaturdayHours(serviceHours.getOrDefault(DayOfWeek.SATURDAY, 0.0));
-            dateRange.setSundayHours(serviceHours.getOrDefault(DayOfWeek.SUNDAY, 0.0));
+        // Handle TotalClaimCharge
+        createTotalClaimCharge(data, totalClaimAmount, dateRange);
 
-            // If it's an existing user, add to the existing date ranges
-            List<DateRange> dateRanges = data.getDateRanges();
-            if (dateRanges == null) {
-                // Ensure dateRanges list is initialized
-                dateRanges = new ArrayList<>();
-                // Add the new DateRange to the list
-                dateRanges.add(dateRange);
-                // Set the list to the entity
-                data.setDateRanges(dateRanges);
-            } else {
-                // Add the new DateRange to the list of existing DateRanges for the user
-                dateRanges.add(dateRange);
-            }
-            // Link DateRange with LegacyData entity (bidirectional) - this is needed for the JSON response to work properly (otherwise, it will cause an infinite loop)
-            dateRange.setLegacyData(data);
-        }
-        // Create and link TotalClaimChargePerUser
-        TotalClaimChargePerUser totalCharge = new TotalClaimChargePerUser();
-        // Set the total claim charge
-        totalCharge.setTotalClaimCharge(totalClaimAmount);
-        // Link TotalClaimChargePerUser with LegacyData and DateRange (bidirectional) - this is needed for the JSON response to work properly (otherwise, it will cause an infinite loop)
-        totalCharge.setLegacyData(data);
-        totalCharge.setDateRange(dateRange);
-
-        // Add the TotalClaimChargePerUser to the list of TotalClaimChargePerUser for the user (bidirectional) - this is needed for the JSON response to work properly (otherwise, it will cause an infinite loop)
-        data.getTotalClaimCharges().add(totalCharge);
-
-        // Handling skipped service dates
-        // Convert the list of dates to skip from the request to a set of LocalDate objects
+        // Handle skipped service dates
         Set<LocalDate> skippedDates = request.getDatesToSkip().stream()
-                .map(LocalDate::parse) // Converts String to LocalDate
-                .collect(Collectors.toSet()); // Converts the stream to a set of LocalDate objects (removes duplicates) - this is needed to avoid duplicate entries in the database
-        data.setSkippedDates(skippedDates); // Set the skipped dates to the entity
+                .map(LocalDate::parse)
+                .collect(Collectors.toSet());
+        data.setSkippedDates(skippedDates);
 
-        // Save the entity using the repository
+        // Save the LegacyData entity with all related entities
         return legacyDataRepository.save(data);
     }
+
+    /**
+     * This maps the legacy Request to the legacy data entity
+     * @param request request for legacy requested data
+     * @param data for the lgacydata entity
+     */
+    private void mapRequestToLegacyData(LegacyRequest request, LegacyData data) {
+        // Mapping fields from request to LegacyData entity
+        data.setFirstName(request.getFirstName());
+        data.setLastName(request.getLastName());
+        data.setIdNumber(request.getIdNumber());
+        data.setAddress(request.getAddress());
+        data.setBirthday(String.valueOf(LocalDate.parse(request.getBirthday()))); // Ensure this is correctly parsed
+        data.setZipcode(request.getZipcode());
+        data.setRate(request.getRate());
+        // Assuming datesToSkip are handled separately as shown later
+    }
+
+    /**
+     *Create and map  date range for the legacy data
+     * @param data
+     * @param request
+     * @return data range  for legacy data
+     */
+    private DateRange createDateRangeForLegacyData(LegacyData data, LegacyRequest request) {
+        DateRange dateRange = new DateRange();
+        dateRange.setLegacyData(data); // Establishing the bidirectional relationship
+        // Set hours per day for each day of the week from the request data (0.0 if not provided)
+        // and convertToHoursPerDayMap() provides a correct mapping
+        dateRange.setStartDate(request.getStartDate()); // Adjusted for direct access
+        dateRange.setEndDate(request.getEndDate());
+        Map<DayOfWeek, Double> serviceHours = request.convertToHoursPerDayMap();
+        dateRange.setMondayHours(serviceHours.getOrDefault(DayOfWeek.MONDAY, 0.0));
+        dateRange.setTuesdayHours(serviceHours.getOrDefault(DayOfWeek.TUESDAY, 0.0));
+        dateRange.setWednesdayHours(serviceHours.getOrDefault(DayOfWeek.WEDNESDAY, 0.0));
+        dateRange.setThursdayHours(serviceHours.getOrDefault(DayOfWeek.THURSDAY, 0.0));
+        dateRange.setFridayHours(serviceHours.getOrDefault(DayOfWeek.FRIDAY, 0.0));
+        dateRange.setSaturdayHours(serviceHours.getOrDefault(DayOfWeek.SATURDAY, 0.0));
+        dateRange.setSundayHours(serviceHours.getOrDefault(DayOfWeek.SUNDAY, 0.0));
+        dateRange.setServiceHours(serviceHours); // Directly setting the map assuming DateRange supports it
+        return dateRange;
+    }
+
+    /**
+     * This method generates and calculates the totla charges and then maps to the legacyData
+     * @param data
+     * @param totalClaimAmount the total charges for a particular date range
+     * @param dateRange Date range for a particular total charges
+     */
+    private void createTotalClaimCharge(LegacyData data, Double totalClaimAmount, DateRange dateRange) {
+        TotalClaimChargePerUser totalCharge = new TotalClaimChargePerUser();
+        totalCharge.setTotalClaimCharge(totalClaimAmount);
+        totalCharge.setLegacyData(data);
+        totalCharge.setDateRange(dateRange);
+        if(data.getTotalClaimCharges()==null){
+            data.setTotalClaimCharges(new ArrayList<>());
+        }
+        data.getTotalClaimCharges().add(totalCharge);
+    }
+
+//    @CrossOrigin
+//    @Transactional
+//    public LegacyData saveOrUpdateLegacyData(LegacyRequest request, Double totalClaimAmount) {
+//
+//        // First, check if the user already exists
+//        Optional<LegacyData> existingUser = legacyDataRepository.findByIdNumber(request.getIdNumber());
+//
+//        final LegacyData data; // This is the LegacyData entity that will be saved
+//
+//        if (existingUser.isPresent()) {
+//            // User exists, use the existing record
+//            data = existingUser.get();
+//        } else {
+//            // Create a new LegacyData entity from the request data
+//            // This is a new user, create a new record
+//            data = new LegacyData();
+//            // Map fields from request to entity
+//            data.setFirstName(request.getFirstName());
+//            data.setLastName(request.getLastName());
+//            data.setIdNumber(request.getIdNumber());
+//            data.setAddress(request.getAddress());
+//            data.setBirthday(request.getBirthday());
+//            data.setZipcode(request.getZipcode());
+//            data.setRate(request.getRate());
+//            data.setDatesToSkip(request.getDatesToSkip());
+//        }
+//        // Ensure totalClaimCharges list is initialized
+//        // This is needed to avoid null pointer exceptions
+//        if (data.getTotalClaimCharges() == null) {
+//            data.setTotalClaimCharges(new ArrayList<>());
+//        }
+//
+//        // Check if the DateRange with the same start and end dates already exists
+//        DateRange dateRange = findExistingDateRange(data, legacyService.getActualStart(), legacyService.getActualEnd());
+//        if (dateRange == null) {
+//            // DateRange does not exist, create a new DateRange entity from the request data
+//            dateRange = new DateRange();
+//            dateRange.setStartDate(legacyService.getActualStart()); // Set actual start date
+//            dateRange.setEndDate(legacyService.getActualEnd()); // Set actual end date
+//            // Set hours per day for each day of the week from the request data (0.0 if not provided)
+//            Map<DayOfWeek, Double> serviceHours = request.convertToHoursPerDayMap();
+//            dateRange.setMondayHours(serviceHours.getOrDefault(DayOfWeek.MONDAY, 0.0));
+//            dateRange.setTuesdayHours(serviceHours.getOrDefault(DayOfWeek.TUESDAY, 0.0));
+//            dateRange.setWednesdayHours(serviceHours.getOrDefault(DayOfWeek.WEDNESDAY, 0.0));
+//            dateRange.setThursdayHours(serviceHours.getOrDefault(DayOfWeek.THURSDAY, 0.0));
+//            dateRange.setFridayHours(serviceHours.getOrDefault(DayOfWeek.FRIDAY, 0.0));
+//            dateRange.setSaturdayHours(serviceHours.getOrDefault(DayOfWeek.SATURDAY, 0.0));
+//            dateRange.setSundayHours(serviceHours.getOrDefault(DayOfWeek.SUNDAY, 0.0));
+//
+//            // If it's an existing user, add to the existing date ranges
+//            List<DateRange> dateRanges = data.getDateRanges();
+//            if (dateRanges == null) {
+//                // Ensure dateRanges list is initialized
+//                dateRanges = new ArrayList<>();
+//                // Add the new DateRange to the list
+//                dateRanges.add(dateRange);
+//                // Set the list to the entity
+//                data.setDateRanges(dateRanges);
+//            } else {
+//                // Add the new DateRange to the list of existing DateRanges for the user
+//                dateRanges.add(dateRange);
+//            }
+//            // Link DateRange with LegacyData entity (bidirectional) - this is needed for the JSON response to work properly (otherwise, it will cause an infinite loop)
+//            dateRange.setLegacyData(data);
+//        }
+//        // Create and link TotalClaimChargePerUser
+//        TotalClaimChargePerUser totalCharge = new TotalClaimChargePerUser();
+//        // Set the total claim charge
+//        totalCharge.setTotalClaimCharge(totalClaimAmount);
+//        // Link TotalClaimChargePerUser with LegacyData and DateRange (bidirectional) - this is needed for the JSON response to work properly (otherwise, it will cause an infinite loop)
+//        totalCharge.setLegacyData(data);
+//        totalCharge.setDateRange(dateRange);
+//
+//        // Add the TotalClaimChargePerUser to the list of TotalClaimChargePerUser for the user (bidirectional) - this is needed for the JSON response to work properly (otherwise, it will cause an infinite loop)
+//        data.getTotalClaimCharges().add(totalCharge);
+//
+//        // Handling skipped service dates
+//        // Convert the list of dates to skip from the request to a set of LocalDate objects
+//        Set<LocalDate> skippedDates = request.getDatesToSkip().stream()
+//                .map(LocalDate::parse) // Converts String to LocalDate
+//                .collect(Collectors.toSet()); // Converts the stream to a set of LocalDate objects (removes duplicates) - this is needed to avoid duplicate entries in the database
+//        data.setSkippedDates(skippedDates); // Set the skipped dates to the entity
+//
+//        // Save the entity using the repository
+//        return legacyDataRepository.save(data);
+//    }
 
     /*
     * The findExistingDateRange method is used to check if the DateRange with the same start and end dates already exists. This is used to avoid duplicate claim entries for each user in the database.
@@ -155,18 +247,33 @@ public class LegacyDataService {
     * If the DateRange with the same start and end dates exists, the method returns it.
     * Otherwise, the method returns null.
      */
-    private DateRange findExistingDateRange(LegacyData data, LocalDate startDate, LocalDate endDate) {
-        // Iterate through the list of DateRanges for the user
-        if (data.getDateRanges() != null) {
-            for (DateRange dateRange : data.getDateRanges()) {
-                // Check if the DateRange with the same start and end dates exists
-                if (dateRange.getStartDate().equals(startDate.toString()) && dateRange.getEndDate().equals(endDate.toString())) {
-                    return dateRange;
-                }
-            }
-        }
-        return null;
-    }
+//    private DateRange findExistingDateRange(LegacyData data, LocalDate startDate, LocalDate endDate) {
+//        // Iterate through the list of DateRanges for the user
+//        if (data.getDateRanges() != null) {
+//            for (DateRange dateRange : data.getDateRanges()) {
+//                // Check if the DateRange with the same start and end dates exists
+////                if (dateRange.getStartDate().equals(startDate) && dateRange.getEndDate().equals(endDate)) {
+//                    return dateRange;
+////                }
+//            }
+//        }
+//        return null;
+//    }
+//    private DateRange findExistingDateRange(LegacyData data, LocalDate startDate, LocalDate endDate) {
+//        if (data.getDateRanges() == null) {
+//            return null;
+//        }
+//        return data.getDateRanges().stream()
+//                .filter(dateRange ->
+//                        startDate.equals(dateRange.getStartDate()) &&
+//                                endDate.equals(dateRange.getEndDate())
+//                )
+//                .findFirst()
+//                .orElse(null);
+//    }
+
+
+
 
     @CrossOrigin
     public List<LegacyData> searchByFirstName(String firstName) {

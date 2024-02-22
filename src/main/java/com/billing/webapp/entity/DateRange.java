@@ -1,11 +1,11 @@
 package com.billing.webapp.entity;
 
-import com.billing.webapp.entity.LegacyData;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import org.springframework.web.bind.annotation.CrossOrigin;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.Map;
 
 @Entity
@@ -35,10 +35,10 @@ public class DateRange {
     private Double fridayHours;
     private Double saturdayHours;
     private Double sundayHours;
-    private String startDate;
+    private LocalDate startDate;
+    private LocalDate endDate;
     @ElementCollection
     private Map<DayOfWeek, Double> serviceHours; // A map of service days to hours
-    private String endDate;
     @ManyToOne
     @JoinColumn(name = "legacy_data_id", nullable = false)
     @JsonBackReference
@@ -104,11 +104,11 @@ public class DateRange {
         this.legacyData = legacyData;
     }
 
-    public String getStartDate() {
+    public LocalDate getStartDate() {
         return startDate;
     }
 
-    public void setStartDate(String startDate) {
+    public void setStartDate(LocalDate startDate) {
         this.startDate = startDate;
     }
 
@@ -120,14 +120,32 @@ public class DateRange {
         this.serviceHours = serviceHours;
     }
 
-    public String getEndDate() {
+    public LocalDate getEndDate() {
         return this.endDate;
     }
 
-    public void setEndDate(String endDate) {
+    public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
     }
 
     // Standard getters and setters
+
+//    @Override
+//    public String toString() {
+//        return "DateRange{" +
+//                "id=" + id +
+//                ", mondayHours=" + mondayHours +
+//                ", tuesdayHours=" + tuesdayHours +
+//                ", wednesdayHours=" + wednesdayHours +
+//                ", thursdayHours=" + thursdayHours +
+//                ", fridayHours=" + fridayHours +
+//                ", saturdayHours=" + saturdayHours +
+//                ", sundayHours=" + sundayHours +
+//                ", startDate='" + startDate + '\'' +
+//                ", serviceHours=" + serviceHours +
+//                ", endDate='" + endDate + '\'' +
+//                ", legacyData=" + legacyData +
+//                '}';
+//    }
 }
 

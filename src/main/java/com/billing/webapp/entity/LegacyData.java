@@ -35,10 +35,9 @@ public class LegacyData {
      * The JsonManagedReference annotation is used in the LegacyData class (parent side of the relationship) (used on the side of the relationship that you want to serialize)
      * The JsonBackReference annotation is used in the DateRange class (child side of the relationship) (used on the side of the relationship that you want to ignore)
      */
-    @OneToMany(mappedBy = "legacyData", cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "legacyData", cascade = CascadeType.ALL)
     private List<DateRange> dateRanges;
-    @OneToMany(mappedBy = "legacyData", cascade = CascadeType.ALL)
+    @OneToMany(fetch =FetchType.EAGER,mappedBy = "legacyData", cascade = CascadeType.ALL)
     private List<TotalClaimChargePerUser> totalClaimCharges; // This is a list of total claim charges for each user (The amount billed to the payer for each user)
     private String firstName; // This is the first name of the user
     private String lastName; // This is the last name of the user
@@ -163,5 +162,25 @@ public class LegacyData {
 
     public void setDatesToSkip(List<String> datesToSkip) {
         this.datesToSkip = datesToSkip;
+    }
+
+    @Override
+    public String toString() {
+        return "LegacyData{" +
+                "id=" + id +
+                ", idNumber='" + idNumber + '\'' +
+                ", skippedDates=" + skippedDates +
+                ", dateRanges=" + dateRanges +
+                ", totalClaimCharges=" + totalClaimCharges +
+                ", firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", address='" + address + '\'' +
+                ", birthday='" + birthday + '\'' +
+                ", zipcode='" + zipcode + '\'' +
+                ", rate=" + rate +
+                ", serviceDays=" + serviceDays +
+                ", hoursPerDay=" + hoursPerDay +
+                ", datesToSkip=" + datesToSkip +
+                '}';
     }
 }

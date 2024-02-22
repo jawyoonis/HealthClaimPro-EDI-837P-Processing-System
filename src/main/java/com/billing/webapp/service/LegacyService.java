@@ -1,13 +1,13 @@
 package com.billing.webapp.service;
 
+import com.billing.webapp.controller.LegacyRequest;
 import com.billing.webapp.repository.DateRangeRepository;
 import com.billing.webapp.repository.LegacyDataRepository;
 import com.billing.webapp.repository.TotalClaimChargePerUserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
-import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.CrossOrigin;
 
@@ -18,7 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
-@Scope(value = "request", proxyMode = ScopedProxyMode.TARGET_CLASS)
+//@Scope(value = "request", proxyMode = ScopedProxyMode.TARGET_CLASS)
 public class LegacyService {
     /*
      * This class is used to generate the claim files for each user.
@@ -95,8 +95,8 @@ public class LegacyService {
     String dtp02_dateTimePeriodFormatQualifier = "D8"; // Date Time Period Format Qualifier (Required), D8=CCYYMMDD, D9=MMDDYYYY, RD=Relative Date, DT=Date Time (CCYYMMDDHHMM), DTM=Date Time (CCYYMMDDHHMMSS), TS=Time Stamp (CCYYMMDDHHMMSSNNNNNN), Y4=Year and Month (CCYYMM)
     private String firstName;
     private String lastName;
-    private String start_date;
-    private String end_date;
+    private LocalDate start_date;
+    private LocalDate end_date;
     private double rate;
     private Map<DayOfWeek, Double> hoursPerDay = new HashMap<>();
     private LocalDate start;
@@ -129,6 +129,16 @@ public class LegacyService {
     @Autowired
     private TotalClaimChargePerUserRepository totalClaimChargePerUserRepository;
 
+    public LegacyService(@Lazy
+                         FileWriterHelperService writerHelper,
+                         DateRangeRepository dateRangeRepository,
+                         LegacyDataRepository legacyDataRepository,
+                         TotalClaimChargePerUserRepository totalClaimChargePerUserRepository) {
+        this.dateRangeRepository=dateRangeRepository;
+        this.legacyDataRepository=legacyDataRepository;
+        this.totalClaimChargePerUserRepository=totalClaimChargePerUserRepository;
+        this.writerHelper=writerHelper;
+    }
     public Map<DayOfWeek, Double> getHoursPerDay() {
         return hoursPerDay;
     }
@@ -177,11 +187,11 @@ public class LegacyService {
         return serviceDays;
     }
 
-    public String getStart_date() {
+    public LocalDate getStart_date() {
         return start_date;
     }
 
-    public String getEnd_date() {
+    public LocalDate getEnd_date() {
         return end_date;
     }
 
@@ -520,13 +530,13 @@ public class LegacyService {
             }
         });
 
-        // Set the start and end dates from the request body to the fields start and end of this class
-        start = LocalDate.parse(start_date);
-        end = LocalDate.parse(end_date);
+//        // Set the start and end dates from the request body to the fields start and end of this class
+//        start = LocalDate.parse(start_date);
+//        end = LocalDate.parse(end_date);
 
         // Convert string dates from the request to LocalDate
-        this.start = LocalDate.parse(request.getStartDate());
-        this.end = LocalDate.parse(request.getEndDate());
+//        this.start = LocalDate.parse(request.getStartDate());
+//        this.end = LocalDate.parse(request.getEndDate());
 
         // Calculate the actual start and end dates
         this.actualStart = findFirstWorkday(this.start, this.end, this.serviceDays, this.dates_to_skip);

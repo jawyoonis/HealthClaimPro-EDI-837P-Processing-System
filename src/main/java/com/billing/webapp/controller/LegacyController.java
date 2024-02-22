@@ -1,6 +1,5 @@
 package com.billing.webapp.controller;
 
-import com.billing.webapp.service.LegacyRequest;
 import com.billing.webapp.utils.ZipUtil;
 import com.billing.webapp.dto.BillingHistoryDTO;
 import com.billing.webapp.entity.DateRange;
@@ -18,11 +17,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayInputStream;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
 
 @RestController
 @RequestMapping("/api")
@@ -79,9 +80,10 @@ public class LegacyController {
      * It returns a 404 response if the user is not found.
      * It returns a 200 response with the details of the user if the user is found.
      */
-    @GetMapping("/users/details")
-    @CrossOrigin
+    @GetMapping("/user/details")
+//    @CrossOrigin
     public ResponseEntity<LegacyData> getUserDetailsByFirstName(@RequestParam String firstName) {
+
         // Call the findByFirstName method in the LegacyDataService to retrieve the user
         LegacyData user = legacyDataService.findByFirstName(firstName);
         // If the user is found and has date ranges in the database (should be true if at least one claim has been generated for the user)
@@ -191,8 +193,8 @@ public class LegacyController {
          * It is used by the interface to display the details of the user with the latest date range.
          */
         private Map<String, Double> serviceHoursDetails; // Map to hold the service hours details for each day of the week
-        private String startDate; // Start date of the latest date range
-        private String endDate; // End date of the latest date range
+        private  LocalDate startDate; // Start date of the latest date range
+        private LocalDate endDate; // End date of the latest date range
         // Other fields from LegacyData if needed
 
         public LegacyDataDetails(DateRange latestDateRange) {

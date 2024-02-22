@@ -1,22 +1,31 @@
 package com.billing.webapp.dto;
+import java.time.LocalDate;
 
 public class DateRangeDTO {
-    private String startDate;
-    private String endDate;
+    private LocalDate startDate;
+    private  LocalDate endDate;
 
-    // Constructor
-    public DateRangeDTO(String startDate, String endDate) {
+    public DateRangeDTO(LocalDate startDate, LocalDate endDate) {
         this.startDate = startDate;
         this.endDate = endDate;
     }
+    public DateRangeDTO() {
 
-    // Getter for startDate
-    public String getStartDate() {
+    }
+
+    public LocalDate getStartDate() {
         return startDate;
     }
 
-    // Getter for endDate
-    public String getEndDate() {
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
+    public LocalDate getEndDate() {
         return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
     }
 }

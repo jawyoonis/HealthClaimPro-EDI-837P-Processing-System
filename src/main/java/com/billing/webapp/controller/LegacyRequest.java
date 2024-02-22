@@ -1,18 +1,17 @@
-package com.billing.webapp.service;
+package com.billing.webapp.controller;
 
 import com.billing.webapp.controller.LegacyController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Scope;
-import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.web.bind.annotation.CrossOrigin;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Scope(value = "request", proxyMode = ScopedProxyMode.TARGET_CLASS)
+//@Scope(value = "request", proxyMode = ScopedProxyMode.TARGET_CLASS)
 @CrossOrigin
 public class LegacyRequest {
     /*
@@ -26,14 +25,15 @@ public class LegacyRequest {
     // The logger is used to log error messages
     private static final Logger logger = LoggerFactory.getLogger(LegacyController.class);
     // The names of the properties must match the names of the properties in the JSON request body from the frontend
+    // The names of the properties must match the names of the properties in the JSON request body from the frontend
     private String firstName; //  The first name of the user
     private String lastName; // The last name of the user
     private String idNumber; // The unique identifier for each user
     private String address; // The address of the user
     private String birthday;  // The birthday of the user (e.g. 2021-01-01)
     private String zipcode; // The zipcode of the user (e.g. 12345)
-    private String startDate; // The start date of the service (e.g. 2021-01-01)
-    private String endDate; // The end date of the service (e.g. 2021-01-01)
+    private LocalDate startDate; // The start date of the service (e.g. 2021-01-01)
+    private LocalDate endDate; // The end date of the service (e.g. 2021-01-01)
     private double rate; // The rate of the service (e.g. 10.00)
     private List<String> serviceDays; // List of days like "MONDAY", "TUESDAY" etc.
     private List<Double> hoursPerDay; // Corresponding hours for each service day (e.g. 8.00)
@@ -89,19 +89,19 @@ public class LegacyRequest {
         this.zipcode = zipcode;
     }
 
-    public String getStartDate() {
+    public LocalDate getStartDate() {
         return startDate;
     }
 
-    public void setStartDate(String startDate) {
+    public void setStartDate(LocalDate startDate) {
         this.startDate = startDate;
     }
 
-    public String getEndDate() {
+    public LocalDate getEndDate() {
         return endDate;
     }
 
-    public void setEndDate(String endDate) {
+    public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
     }
 
@@ -186,4 +186,6 @@ public class LegacyRequest {
                 ", datesToSkip=" + datesToSkip +
                 '}';
     }
+
+
 }

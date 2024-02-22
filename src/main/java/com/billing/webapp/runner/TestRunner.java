@@ -43,16 +43,16 @@ public class TestRunner implements CommandLineRunner {
             hoursPerDay.add(8.0*i); // 8 hours for Monday
 
             serviceDays.add(DayOfWeek.TUESDAY.name()); // "TUESDAY"
-            hoursPerDay.add(1.0*i); // 6.5 hours for Tuesday
+            hoursPerDay.add(1.0*i); // 1 hour for Tuesday
 
             serviceDays.add(DayOfWeek.WEDNESDAY.name()); // "WEDNESDAY"
-            hoursPerDay.add(2.0*i); // 7 hours for Wednesday
+            hoursPerDay.add(2.0*i); // 2 hours for Wednesday
 
             serviceDays.add(DayOfWeek.THURSDAY.name()); // "THURSDAY"
-            hoursPerDay.add(3.0*i); // 8 hours for Thursday
+            hoursPerDay.add(3.0*i); // 3 hours for Thursday
 
             serviceDays.add(DayOfWeek.FRIDAY.name()); // "FRIDAY"
-            hoursPerDay.add(4.0*i); // 5 hours for Friday
+            hoursPerDay.add(4.0*i); // 4 hours for Friday
             serviceDays.add(DayOfWeek.SATURDAY.name()); // "SATURDAY"
             hoursPerDay.add(5.0 *i); // 4 hours for Saturday
 
